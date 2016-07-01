@@ -21,4 +21,8 @@ const Mongo = function Mongo(uri) {
 
 inherits(Mongo, EventEmitter);
 
-module.exports = new Mongo('mongodb://mongo:27017/test');
+const addr = process.env.MONGO_PORT_27017_TCP_ADDR || 'mongo';
+const port = process.env.MONGO_PORT_27017_TCP_PORT || '27017';
+const db = 'test';
+
+module.exports = new Mongo(`mongodb://${addr}:${port}/${db}`);
