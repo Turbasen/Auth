@@ -4,8 +4,9 @@
   "description": "Authentication middleware used internally at Nasjonal Turbase API",
   "main": "index.js",
   "files": [
+    "examples",
     "index.js",
-    "test"
+    "lib"
   ],
   "scripts": {
     "codacy-coverage": "codacy-coverage",
