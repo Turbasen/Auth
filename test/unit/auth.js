@@ -172,14 +172,6 @@ describe('auth', () => {
 
     it('returns middleware function', () => {
       assert.equal(typeof middleware, 'function');
-
-      const args = middleware
-        .toString()
-        .split('\n')[0]
-        .replace(/.*\(|\).*/ig, '')
-        .split(', ');
-
-      assert.deepEqual(args, ['req', 'res', 'next']);
     });
 
     it('looks up user by Authorization header', done => {
