@@ -7,6 +7,13 @@ build:
 
   steps:
     - script:
+        name: wait for MongoDB to start
+        code: |
+          apt-get update --no-install-recommends -y
+          apt-get install --no-install-recommends -y netcat
+          while ! nc -q 1 $MONGO_PORT_27017_TCP_ADDR $MONGO_PORT_27017_TCP_PORT </dev/null; do sleep 3; done
+
+    - script:
         name: echo nodejs information
         code: |
           echo "node version $(node -v) running"
