@@ -12,68 +12,66 @@ const CACHE_INVALID = process.env.NTB_CACHE_INVALID || 24 * 60 * 60 * 1000;
 const API_ENV = process.env.NTB_API_ENV || 'dev';
 const RATELIMIT_UNAUTH = process.env.NTB_RATELIMIT_UNAUTH || 100;
 
-module.exports = () => {
-  return function middleware(req, res, next) {
-    let promise;
+module.exports = () => (req, res, next) => {
+  let promise;
 
-    // API key through Authorization header
-    if (req.headers.authorization) {
-      const token = req.headers.authorization.split(' ');
-      promise = module.exports.getUserByToken(token[1]);
+  // API key through Authorization header
+  if (req.headers.authorization) {
+    const token = req.headers.authorization.split(' ');
+    promise = module.exports.getUserByToken(token[1]);
 
-    // API key through URL query parameter
-    } else if (req.query && req.query.api_key) {
-      promise = module.exports.getUserByToken(req.query.api_key);
+  // API key through URL query parameter
+  } else if (req.query && req.query.api_key) {
+    promise = module.exports.getUserByToken(req.query.api_key);
 
-    // No API key
-    } else {
-      promise = module.exports.getUserByIp(
-        req.headers['x-forwarded-for'] || req.connection.remoteAddres
-      );
+  // No API key
+  } else {
+    promise = module.exports.getUserByIp(
+      req.headers['x-forwarded-for'] || req.connection.remoteAddres
+    );
+  }
+
+  promise.then(user => {
+    req.user = user;
+
+    res.set('X-User-Auth', user.auth);
+    if (user.auth) {
+      res.set('X-User-Provider', user.provider);
     }
 
-    promise.then(user => {
-      req.user = user;
+    res.set('X-RateLimit-Limit', user.limit);
+    res.set('X-RateLimit-Reset', user.reset);
 
-      res.set('X-User-Auth', user.auth);
-      if (user.auth) {
-        res.set('X-User-Provider', user.provider);
+    if (!user.hasRemainingQuota()) {
+      res.set('X-RateLimit-Remaining', 0);
+
+      return next(new HttpError(
+        403, `API rate limit exceeded for ${user.type} "${user.key}"`
+      ));
+    }
+
+    res.set('X-RateLimit-Remaining', user.charge());
+
+    if (!user.can(req.method)) {
+      return next(new HttpError(
+        401, `API authentication required for "${req.method}" requests`
+      ));
+    }
+
+    res.on('finish', function resOnFinishCb() {
+      // Uncharge user when certain cache features are used.
+      // 304 Not Modified, and 412 Precondition Failed
+      if (this.statusCode === 304 || this.statusCode === 412) {
+        this.req.user.uncharge();
       }
 
-      res.set('X-RateLimit-Limit', user.limit);
-      res.set('X-RateLimit-Reset', user.reset);
-
-      if (!user.hasRemainingQuota()) {
-        res.set('X-RateLimit-Remaining', 0);
-
-        return next(new HttpError(
-          403, `API rate limit exceeded for ${user.type} "${user.key}"`
-        ));
+      if (this.req.user.getCharge() > 0) {
+        redis.hincrby(this.req.user.cacheKey, 'remaining', -1);
       }
+    });
 
-      res.set('X-RateLimit-Remaining', user.charge());
-
-      if (!user.can(req.method)) {
-        return next(new HttpError(
-          401, `API authentication required for "${req.method}" requests`
-        ));
-      }
-
-      res.on('finish', function resOnFinishCb() {
-        // Uncharge user when certain cache features are used.
-        // 304 Not Modified, and 412 Precondition Failed
-        if (this.statusCode === 304 || this.statusCode === 412) {
-          this.req.user.uncharge();
-        }
-
-        if (this.req.user.getCharge() > 0) {
-          redis.hincrby(this.req.user.cacheKey, 'remaining', -1);
-        }
-      });
-
-      return next();
-    }).catch(next);
-  };
+    return next();
+  }).catch(next);
 };
 
 module.exports.getUserByIp = function getUserByIp(key) {

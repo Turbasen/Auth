@@ -6,9 +6,9 @@ const users = require('./support/users');
 
 before(done => {
   if (mongo.db) { return done(); }
-  mongo.on('ready', done);
+  return mongo.on('ready', done);
 });
 
 beforeEach(done => redis.flushall(done));
-beforeEach(function (done) { this.timeout(10000); mongo.db.dropDatabase(done); });
-beforeEach(function (done) { this.timeout(10000); mongo.api.users.insert(users, done); });
+beforeEach(done => mongo.db.dropDatabase(done));
+beforeEach(done => mongo.api.users.insert(users, done));
