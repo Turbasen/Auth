@@ -1,16 +1,11 @@
 'use strict';
 
 const express = require('express');
-const mongo = require('@turbasen/db-mongo');
-const redis = require('@turbasen/db-redis');
 
 const app = module.exports = express();
 const auth = require('../');
 
-app.use(auth({
-  mongo: mongo.users,
-  redis,
-}));
+app.use(auth.middleware);
 
 app.get('/', (req, res) => {
   res.end(`Hello ${req.user.name}`);

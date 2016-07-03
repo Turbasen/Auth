@@ -162,3 +162,5 @@ module.exports.getUserByToken = function getUserByToken(key) {
 module.exports.expireat = function expireat(seconds) {
   return Math.floor((new Date().getTime() + seconds) / 1000);
 };
+
+module.exports.middleware = module.exports();
