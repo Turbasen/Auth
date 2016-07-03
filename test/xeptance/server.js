@@ -21,23 +21,23 @@ describe('Acceptance Server', () => {
 
   it('authenticates user with valid Authorization header', done => {
     app.get('/')
-      .set('Authorization', 'Token foo_app1_dev')
+      .set('Authorization', 'Token foo_app1_test')
       .expect(200)
       .expect('X-User-Auth', 'true')
       .expect('X-User-Provider', 'FOO')
-      .expect('X-RateLimit-Limit', '500')
-      .expect('X-RateLimit-Remaining', '499')
+      .expect('X-RateLimit-Limit', '499')
+      .expect('X-RateLimit-Remaining', '498')
       .expect('X-RateLimit-Reset', /[0-9]{10}/)
       .expect('Hello FOO (foo_app1)', done);
   });
 
   it('authenticates user with valid api_key query param', done => {
-    app.get('/?api_key=foo_app1_dev')
+    app.get('/?api_key=foo_app1_test')
       .expect(200)
       .expect('X-User-Auth', 'true')
       .expect('X-User-Provider', 'FOO')
-      .expect('X-RateLimit-Limit', '500')
-      .expect('X-RateLimit-Remaining', '499')
+      .expect('X-RateLimit-Limit', '499')
+      .expect('X-RateLimit-Remaining', '498')
       .expect('X-RateLimit-Reset', /[0-9]{10}/)
       .expect('Hello FOO (foo_app1)', done);
   });

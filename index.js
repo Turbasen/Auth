@@ -1,35 +1,33 @@
 'use strict';
 
 const HttpError = require('@starefossen/http-error');
+const redis = require('@turbasen/db-redis');
+const mongo = require('@turbasen/db-mongo');
+
 const UnauthUser = require('./lib/User').UnauthUser;
 const AuthUser = require('./lib/User').AuthUser;
 
-const CACHE_VALID = process.env.NTB_USER_VALID_CACHE || 60 * 60 * 1000;
-const CACHE_INVALID = process.env.NTB_USER_INVALID_CACHE || 24 * 60 * 60 * 1000;
+const CACHE_VALID = process.env.NTB_CACHE_VALID || 60 * 60 * 1000;
+const CACHE_INVALID = process.env.NTB_CACHE_INVALID || 24 * 60 * 60 * 1000;
 const API_ENV = process.env.NTB_API_ENV || 'dev';
-const LIMIT_UNAUTH = process.env.NTB_LIMIT_UNAUTH || 100;
+const RATELIMIT_UNAUTH = process.env.NTB_RATELIMIT_UNAUTH || 100;
 
-module.exports = opts => {
-  const redis = opts.redis;
-  const mongo = opts.mongo;
-  const env = opts.env || API_ENV;
-
+module.exports = () => {
   return function middleware(req, res, next) {
     let promise;
 
     // API key through Authorization header
     if (req.headers.authorization) {
       const token = req.headers.authorization.split(' ');
-      promise = module.exports.getUserByToken(redis, mongo, env, token[1]);
+      promise = module.exports.getUserByToken(token[1]);
 
     // API key through URL query parameter
     } else if (req.query && req.query.api_key) {
-      promise = module.exports.getUserByToken(redis, mongo, env, req.query.api_key);
+      promise = module.exports.getUserByToken(req.query.api_key);
 
     // No API key
     } else {
       promise = module.exports.getUserByIp(
-        redis, mongo, env,
         req.headers['x-forwarded-for'] || req.connection.remoteAddres
       );
     }
@@ -78,7 +76,7 @@ module.exports = opts => {
   };
 };
 
-module.exports.getUserByIp = function getUserByIp(redis, mongo, env, key) {
+module.exports.getUserByIp = function getUserByIp(key) {
   return new Promise((resolve, reject) => {
     redis.hgetall(AuthUser.getCacheKey(key), (redisErr, data) => {
       if (redisErr) { return reject(redisErr); }
@@ -89,8 +87,8 @@ module.exports.getUserByIp = function getUserByIp(redis, mongo, env, key) {
         const expireat = module.exports.expireat(CACHE_VALID);
 
         const user = new UnauthUser(key, {
-          limit: LIMIT_UNAUTH,
-          remaining: LIMIT_UNAUTH,
+          limit: RATELIMIT_UNAUTH,
+          remaining: RATELIMIT_UNAUTH,
           reset: expireat,
         });
 
@@ -103,7 +101,7 @@ module.exports.getUserByIp = function getUserByIp(redis, mongo, env, key) {
   });
 };
 
-module.exports.getUserByToken = function getUserByToken(redis, mongo, env, key) {
+module.exports.getUserByToken = function getUserByToken(key) {
   return new Promise((resolve, reject) => {
     redis.hgetall(UnauthUser.getCacheKey(key), (redisErr, data) => {
       if (redisErr) { return reject(redisErr); }
@@ -117,7 +115,7 @@ module.exports.getUserByToken = function getUserByToken(redis, mongo, env, key) 
       }
 
       const query = {
-        [`apps.key.${env}`]: key,
+        [`apps.key.${API_ENV}`]: key,
         'apps.active': true,
       };
 
@@ -128,7 +126,7 @@ module.exports.getUserByToken = function getUserByToken(redis, mongo, env, key) 
         },
       };
 
-      return mongo.findOne(query, opts, (mongoErr, doc) => {
+      return mongo.api.users.findOne(query, opts, (mongoErr, doc) => {
         if (mongoErr) { return reject(mongoErr); }
 
         if (!doc) {
@@ -140,15 +138,15 @@ module.exports.getUserByToken = function getUserByToken(redis, mongo, env, key) 
           return reject(new HttpError(`Bad credentials for user "${key}"`, 401));
         }
 
-        const app = doc.apps.find(item => item.key[env] === key);
+        const app = doc.apps.find(item => item.key[API_ENV] === key);
         const expireat = module.exports.expireat(CACHE_VALID);
 
         const user = new AuthUser(key, {
           provider: doc.provider,
           app: app.name,
 
-          limit: app.limit[env],
-          remaining: app.limit[env],
+          limit: app.limit[API_ENV],
+          remaining: app.limit[API_ENV],
           reset: expireat,
         });
 

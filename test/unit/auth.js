@@ -5,8 +5,8 @@ const assert = require('assert');
 const sinon = require('sinon');
 const auth = require('../../');
 
-const mongo = require('../support/mongo');
-const redis = require('../support/redis');
+const mongo = require('@turbasen/db-mongo');
+const redis = require('@turbasen/db-redis');
 
 const AuthUser = require('../../lib/User').AuthUser;
 const UnauthUser = require('../../lib/User').UnauthUser;
@@ -14,7 +14,7 @@ const UnauthUser = require('../../lib/User').UnauthUser;
 describe('auth', () => {
   describe('getUserByToken()', () => {
     it('rejects invalid token', done => {
-      auth.getUserByToken(redis, mongo.users, 'prod', 'invalid')
+      auth.getUserByToken('invalid')
         .then(() => process.nextTick(() => assert.fail()))
         .catch(error => process.nextTick(() => {
           assert(error instanceof HttpError);
@@ -25,7 +25,7 @@ describe('auth', () => {
     });
 
     it('saves invalid token to redis cache', done => {
-      auth.getUserByToken(redis, mongo.users, 'prod', 'invalid')
+      auth.getUserByToken('invalid')
         .then(() => process.nextTick(() => assert.fail()))
         .catch(() => process.nextTick(() => {
           redis.hgetall('api:token:invalid', (err, data) => {
@@ -37,7 +37,7 @@ describe('auth', () => {
     });
 
     it('caches invalid token for 24 hours', done => {
-      auth.getUserByToken(redis, mongo.users, 'prod', 'invalid')
+      auth.getUserByToken('invalid')
         .then(() => process.nextTick(() => assert.fail()))
         .catch(() => process.nextTick(() => {
           redis.ttl('api:token:invalid', (err, ttl) => {
@@ -52,7 +52,7 @@ describe('auth', () => {
       redis.hset('api:token:invalid', 'access', 'false', err => {
         assert.ifError(err);
 
-        auth.getUserByToken(redis, mongo.users, 'prod', 'invalid')
+        auth.getUserByToken('invalid')
           .then(() => process.nextTick(() => assert.fail()))
           .catch(error => process.nextTick(() => {
             assert.equal(error.code, 401);
@@ -64,15 +64,15 @@ describe('auth', () => {
     });
 
     it('returns user for valid token', done => {
-      auth.getUserByToken(redis, mongo.users, 'prod', 'foo_app1_prod')
+      auth.getUserByToken('foo_app1_test')
         .then(user => process.nextTick(() => {
           assert(user instanceof AuthUser);
 
-          assert.equal(user.key, 'foo_app1_prod');
+          assert.equal(user.key, 'foo_app1_test');
           assert.equal(user.provider, 'FOO');
           assert.equal(user.app, 'foo_app1');
-          assert.equal(user.limit, 5000);
-          assert.equal(user.remaining, 5000);
+          assert.equal(user.limit, 499);
+          assert.equal(user.remaining, 499);
 
           const expire = Math.floor(new Date().getTime() / 1000);
           assert(user.reset > expire);
@@ -85,16 +85,16 @@ describe('auth', () => {
     });
 
     it('saves valid token to redis chache', done => {
-      auth.getUserByToken(redis, mongo.users, 'prod', 'foo_app1_prod')
+      auth.getUserByToken('foo_app1_test')
         .then(() => process.nextTick(() => {
-          redis.hgetall('api:token:foo_app1_prod', (err, data) => {
+          redis.hgetall('api:token:foo_app1_test', (err, data) => {
             assert.ifError(err);
             assert.deepEqual(data, {
               access: 'true',
               app: 'foo_app1',
-              limit: '5000',
+              limit: '499',
               provider: 'FOO',
-              remaining: '5000',
+              remaining: '499',
               reset: data.reset,
             });
 
@@ -108,9 +108,9 @@ describe('auth', () => {
     });
 
     it('caches valid token for 1 hour', done => {
-      auth.getUserByToken(redis, mongo.users, 'prod', 'foo_app1_prod')
+      auth.getUserByToken('foo_app1_test')
         .then(() => process.nextTick(() => {
-          redis.ttl('api:token:foo_app1_prod', (err, ttl) => {
+          redis.ttl('api:token:foo_app1_test', (err, ttl) => {
             assert.ifError(err);
             assert(ttl >= 3590 && ttl <= 3610); // 24h ± 10s
             done();
@@ -176,7 +176,7 @@ describe('auth', () => {
 
     it('looks up user by Authorization header', done => {
       req.headers.authorization = 'Token abc123';
-      auth.getUserByToken = (r, m, env, token) => {
+      auth.getUserByToken = (token) => {
         assert.equal(token, 'abc123');
         done();
 
@@ -188,7 +188,7 @@ describe('auth', () => {
 
     it('looks up user by URL query parameter', done => {
       req.query.api_key = 'abc123';
-      auth.getUserByToken = (r, m, env, token) => {
+      auth.getUserByToken = (token) => {
         assert.equal(token, 'abc123');
         done();
 
@@ -200,7 +200,7 @@ describe('auth', () => {
 
     it('looks up user by remote IP', done => {
       req.connection.remoteAddres = '123.456.789';
-      auth.getUserByIp = (r, m, env, token) => {
+      auth.getUserByIp = (token) => {
         assert.equal(token, '123.456.789');
         done();
 
@@ -214,7 +214,7 @@ describe('auth', () => {
       req.connection.remoteAddres = '127.0.0.1';
       req.headers['x-forwarded-for'] = '123.456.789';
 
-      auth.getUserByIp = (r, m, env, token) => {
+      auth.getUserByIp = (token) => {
         assert.equal(token, '123.456.789');
         done();
 
@@ -226,7 +226,7 @@ describe('auth', () => {
 
     it('sets X-RateLimit headers for valid user', done => {
       req.connection.remoteAddres = '127.0.0.1';
-      auth.getUserByIp = (r, m, env, token) => Promise.resolve(
+      auth.getUserByIp = (token) => Promise.resolve(
         new UnauthUser(token, {
           limit: 100,
           remaining: 49,

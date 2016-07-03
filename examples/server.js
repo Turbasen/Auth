@@ -1,8 +1,8 @@
 'use strict';
 
 const express = require('express');
-const mongo = require('../test/support/mongo');
-const redis = require('../test/support/redis');
+const mongo = require('@turbasen/db-mongo');
+const redis = require('@turbasen/db-redis');
 
 const app = module.exports = express();
 const auth = require('../');
