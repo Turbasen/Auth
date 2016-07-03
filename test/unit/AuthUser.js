@@ -21,7 +21,7 @@ describe('AuthUser', () => {
   });
 
   describe('user.type', () => {
-    it('returns "user"', () => assert.equal(user.type, 'user'));
+    it('returns "token"', () => assert.equal(user.type, 'token'));
   });
 
   describe('user.auth', () => {

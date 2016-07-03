@@ -7,7 +7,7 @@ describe('AbstractUser', () => {
   let user;
 
   beforeEach(() => {
-    user = new AbstractUser('token', {
+    user = new AbstractUser('type', 'key', {
       limit: 100,
       remaining: 100,
       reset: 123456789,

@@ -19,7 +19,7 @@ describe('UnauthUser', () => {
   });
 
   describe('user.type', () => {
-    it('returns "guest"', () => assert.equal(user.type, 'guest'));
+    it('returns "ip"', () => assert.equal(user.type, 'ip'));
   });
 
   describe('user.auth', () => {
