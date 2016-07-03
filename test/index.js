@@ -2,7 +2,7 @@
 
 const mongo = require('@turbasen/db-mongo');
 const redis = require('@turbasen/db-redis');
-const users = require('./support/users');
+const users = require('@turbasen/test-data').api.users;
 
 before(done => {
   if (mongo.db) { return done(); }
