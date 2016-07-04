@@ -43,7 +43,7 @@ module.exports = () => (req, res, next) => {
       res.set('X-RateLimit-Remaining', 0);
 
       return next(new HttpError(
-        403, `API rate limit exceeded for ${user.type} "${user.key}"`
+        `API rate limit exceeded for ${user.type} "${user.key}"`, 403
       ));
     }
 
@@ -54,7 +54,7 @@ module.exports = () => (req, res, next) => {
     // allowed to execute POST, PUT, and DELETE requests.
     if (!user.can(req.method)) {
       return next(new HttpError(
-        401, `API authentication required for "${req.method}" requests`
+        `API authentication required for "${req.method}" requests`, 401
       ));
     }
 
