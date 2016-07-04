@@ -1,7 +1,7 @@
 'use strict';
 
 const assert = require('assert');
-const UnauthUser = require('../../lib/User').UnauthUser;
+const UnauthUser = require('../../lib/UnauthUser');
 
 describe('UnauthUser', () => {
   let user;
@@ -16,6 +16,7 @@ describe('UnauthUser', () => {
 
   describe('new', () => {
     it('returns new UnauthUser', () => assert(user instanceof UnauthUser));
+    it('returns new UnauthUser with default data');
   });
 
   describe('user.type', () => {
@@ -68,5 +69,16 @@ describe('UnauthUser', () => {
 
       assert.deepEqual(user.query(query), query);
     });
+  });
+
+  describe('UnauthUser.getByKey()', () => {
+    it('rejects invalid token');
+    it('saves invalid token to redis cache');
+    it('caches invalid token for 24 hours');
+    it('rejects invalid token from redis cache');
+    it('returns user for valid token');
+    it('saves valid token to redis chache');
+    it('caches valid token for 1 hour');
+    it('returns user for cached valid token');
   });
 });
