@@ -1,7 +1,9 @@
 'use strict';
 
 const assert = require('assert');
-const AbstractUser = require('../../lib/User').AbstractUser;
+
+const redis = require('@turbasen/db-redis');
+const AbstractUser = require('../../lib/AbstractUser');
 
 describe('AbstractUser', () => {
   let user;
@@ -10,28 +12,71 @@ describe('AbstractUser', () => {
     user = new AbstractUser('type', 'key', {
       limit: 100,
       remaining: 100,
-      reset: 123456789,
+      reset: 9999999999,
     });
   });
 
   describe('new', () => {
     it('returns new AbstractUser', () => assert(user instanceof AbstractUser));
+    it('returns new AbstractUser with default rate-limit reset', () => {
+      assert(new AbstractUser('type', 'key', {
+        limti: 100,
+        remaining: 100,
+      }).reset > Math.floor(new Date().getTime() / 1000));
+    });
   });
 
-  describe('toObject()', () => {
+  describe('user.cacheKey', () => {
+    it('returns cache key for type and key', () => {
+      assert.equal(user.cacheKey, 'api:type:key');
+    });
+  });
+
+  describe('user.toObject()', () => {
     it('returns user as JSON Object', () => {
       assert.deepEqual(user.toObject(), {
         access: 'true',
-        app: null,
-        limit: 100,
-        provider: null,
-        remaining: 100,
-        reset: 123456789,
+        app: '',
+        limit: '100',
+        provider: '',
+        remaining: '100',
+        reset: '9999999999',
       });
     });
   });
 
-  describe('charge()', () => {
+  describe('user.save()', () => {
+    it('user is not saved by default', done => {
+      redis.hgetall(user.cacheKey).then(data => {
+        assert.deepEqual(data, {});
+        done();
+      });
+    });
+
+    it('saves user to Redis cache', done => {
+      user.save();
+
+      redis.hgetall(user.cacheKey).then(data => {
+        assert.deepEqual(data, user.toObject());
+        done();
+      });
+    });
+
+    it('expires cache at reset time', done => {
+      user.save();
+
+      redis.ttl(user.cacheKey).then(ttl => {
+        assert(ttl > 0);
+        done();
+      });
+    });
+  });
+
+  describe('user.update()', () => {
+    it('updates remaining rate limit in Redis cache');
+  });
+
+  describe('user.charge()', () => {
     it('increments penalty by one (1)', () => {
       assert.equal(user.penalty, 0);
 
@@ -48,7 +93,7 @@ describe('AbstractUser', () => {
     });
   });
 
-  describe('uncharge()', () => {
+  describe('user.uncharge()', () => {
     it('resets penalty to zero (0)', () => {
       user.charge();
       user.charge();
@@ -63,7 +108,7 @@ describe('AbstractUser', () => {
     });
   });
 
-  describe('getCharge()', () => {
+  describe('user.getCharge()', () => {
     it('returns the current penalty', () => {
       assert.equal(user.getCharge(), 0);
       user.charge();
@@ -72,7 +117,7 @@ describe('AbstractUser', () => {
     });
   });
 
-  describe('hasRemainingQuota()', () => {
+  describe('user.hasRemainingQuota()', () => {
     it('returns true when user has remaining quota', () => {
       assert.equal(user.hasRemainingQuota(), true);
     });
@@ -81,5 +126,9 @@ describe('AbstractUser', () => {
       user.remaining = 0;
       assert.equal(user.hasRemainingQuota(), false);
     });
+  });
+
+  describe('User.getCacheKey()', () => {
+    it('returns cach key for type and key');
   });
 });
