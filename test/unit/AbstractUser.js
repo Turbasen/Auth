@@ -65,15 +65,25 @@ describe('AbstractUser', () => {
     it('expires cache at reset time', done => {
       user.save();
 
-      redis.ttl(user.cacheKey).then(ttl => {
+      redis.ttl(user.cacheKey).then(ttl => process.nextTick(() => {
         assert(ttl > 0);
         done();
-      });
+      }));
     });
   });
 
   describe('user.update()', () => {
-    it('updates remaining rate limit in Redis cache');
+    it('updates remaining rate limit in Redis cache', done => {
+      user.save();
+      user.charge();
+      user.update();
+
+      redis.hget(user.cacheKey, 'remaining')
+        .then(remaining => process.nextTick(() => {
+          assert.equal(remaining, '99');
+          done();
+        }));
+    });
   });
 
   describe('user.charge()', () => {
