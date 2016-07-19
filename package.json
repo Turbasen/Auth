@@ -40,7 +40,7 @@
   "homepage": "https://github.com/Turbasen/Auth#readme",
   "peerDependencies": {
     "@starefossen/http-error": "^1.0.0",
-    "@turbasen/db-mongo": "^1.0.0",
+    "@turbasen/db-mongo": "^1.1.0",
     "@turbasen/db-redis": "^1.0.0",
     "express": "^4.13.4"
   },
