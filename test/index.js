@@ -1,4 +1,5 @@
 'use strict';
+/* eslint import/no-extraneous-dependencies: ["error", {"devDependencies": true}] */
 
 const mongo = require('@turbasen/db-mongo');
 const redis = require('@turbasen/db-redis');
