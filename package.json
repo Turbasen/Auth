@@ -11,7 +11,6 @@
   "scripts": {
     "codacy-coverage": "codacy-coverage",
     "cover": "istanbul cover --report lcovonly ./node_modules/.bin/_mocha -- -r test/support/env -R spec test/**",
-    "grunt:watch": "grunt watch",
     "lint": "eslint test/ lib/ index.js",
     "nsp": "nsp check",
     "semantic-release": "semantic-release",
