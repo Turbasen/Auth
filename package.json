@@ -48,7 +48,7 @@
     "@turbasen/db-mongo": "^1.0.0",
     "@turbasen/db-redis": "^1.0.0",
     "@turbasen/test-data": "^1.0.1",
-    "codacy-coverage": "^1.1.3",
+    "codacy-coverage": "^2.0.0",
     "eslint": "^3.1.1",
     "eslint-config-airbnb-base": "^4.0.2",
     "eslint-plugin-import": "^1.11.0",
