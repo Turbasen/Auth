@@ -57,7 +57,7 @@
     "istanbul": "^0.4.4",
     "mocha": "^2.5.3",
     "nsp": "^2.5.0",
-    "semantic-release": "^4.3.5",
+    "semantic-release": "^6.3.2",
     "sinon": "^1.17.4",
     "supertest": "^1.2.0"
   },
