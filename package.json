@@ -59,7 +59,7 @@
     "nsp": "^2.5.0",
     "semantic-release": "^4.3.5",
     "sinon": "^1.17.4",
-    "supertest": "^1.2.0"
+    "supertest": "^3.0.0"
   },
   "engines": {
     "node": ">=4.0.0"
